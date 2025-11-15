@@ -1,0 +1,76 @@
+@startuml
+
+title Диаграмма контейнера Передача ставок в кол-центр
+!include ../C4/C4_Container.puml
+
+AddContainerTag("mvp", $bgColor="#4CAF50", $borderColor="Black", $fontColor="Black")
+
+Person(client, "Клиент банка")
+Person(employee_call_center, "Сотрудник кол-центра")
+Person(employee_call_center_ext, "Сотрудник партнерского кол-центра")
+
+
+System_Boundary(standart, "Информационная система банка 'Стандрат'"){
+    System_Boundary(call_system, "Система кол-центра"){
+        System_Ext(call_center, "Система кол-центра", "У системы веб-интерфейс на React.js, бэкенд на Java Spring Boot и базы PostgreSQL. Архитектура микросервисная. Система развёрнута в инфраструктуре банка и полностью поддерживается подрядчиком.")
+        Container(bank_req_flow, "Сервис обработки новых заявок", "Java Spring Boot", $tags="mvp")
+    }
+    
+
+    System_Boundary(to_be, "Новые контейнеры в рамках MVP"){
+        Container(internet_bank, "Интернет-банк", "SPA React.js", "Новый интернет-банк", $tags="mvp")
+        Container(api_gateway, "API Gateway", ".NET, Ocelot", $tags="mvp")
+        Container(deposit_service, "Сервис по обработке депозитов", ".NET", "Обработка депозитов", $tags="mvp")
+        ContainerDb(deposit_db, "БД депозиты", "PostgresSQL", $tags="mvp")
+        Container(rate_service, "Сервис управления ставками", "Java Spring Boot", "", $tags="mvp")
+        ContainerDb(rate_db, "БД ставки", "PostgresSQL", $tags="mvp")
+        Container(adapter, "Adapter Service", "Java Spring Boot", $tags="mvp")
+        ContainerQueue(kafka, "Брокер сообщений", "Kafka", $tags="mvp")
+    }
+
+
+    Rel_D(call_center, bank_req_flow, "", "REST API")
+    BiRel_D(bank_req_flow, kafka, "", "pub/sub")
+
+    Rel_R(deposit_service, deposit_db, "", "")
+    Rel_R(rate_service, rate_db, "", "")
+
+    System_Boundary(as_is, "As-Is "){
+        Container(abc_desktop, "АБС", "Delphi", "Десктоп приложение")
+        ContainerDb(abc_db, "БД АБС", "Oracle")
+        Container(credit_pipeline, "Кредитный конвейер", "Camunda BPM", "Система для обработки заявок на кредит. В ней сотрудники управления кредитования обрабатывают заявки от менеджеров в отделении. Это коробочное решение ")
+        ContainerDb(credit_pipeline_db, "БД Кредитных заявок", "Oracle")
+        Container(credit_scoring, "Система кредитного скоринга", "Python Flask", "Система определяет рейтинг клиента для выдачи ему кредита. Система использует внутренний сервис машинного обучения, где на основании модели и полученных данных выдается итоговый скоринг")
+        ContainerDb(credit_scoring_db, "БД cистемы кредитного скоринга", "PostgreSQL")    
+    }
+
+    Rel(call_center, api_gateway, "Получение информации о ставках по депозитам", "REST API")
+
+    Rel(api_gateway, deposit_service, "Формироване заявок на депозит", "Rest API")
+    Rel(api_gateway, rate_service, "", "Rest API")
+    BiRel(deposit_service, kafka, "", "pub/sub")
+    BiRel(rate_service, kafka, "", "pub/sub")
+    BiRel(adapter, kafka, "", "pub/sub")
+    BiRel(adapter, abc_db, "", "SQL")
+
+    Rel(abc_desktop, abc_db, "PL-SQL", "")
+    Rel(credit_pipeline, credit_pipeline_db, "", "")
+    Rel(credit_scoring, credit_scoring_db, "", "")
+
+    Rel(abc_db, credit_pipeline, "", "")
+    Rel(abc_db, credit_scoring, "", "")
+}
+
+System_Ext(bki, "Бюро кредитных операций")
+System_Ext(call_center_ext, "Система партнёрского кол-центра", "Это внешняя система. Партнёрский кол-центр и подрядчик, чью систему использует кол-центра банка, — разные компании.")
+
+Rel_D(adapter, call_center_ext, "актуальные ставки в виде файлов", "SFTP")
+Rel_U(credit_scoring, bki, "REST API")
+
+Rel(client, call_system, "", "")
+Rel(employee_call_center, call_system, "", "")
+Rel(client, call_center_ext, "", "")
+Rel(employee_call_center_ext, call_center_ext, "", "")
+
+
+@enduml

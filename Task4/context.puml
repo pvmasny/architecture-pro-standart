@@ -1,0 +1,23 @@
+@startuml
+
+title Диаграмма контекста Передача ставок в кол-центр
+!include ../C4/C4_Context.puml
+
+Person(client, "Клиент банка")
+Person(employee_call_center, "Сотрудник кол-центра")
+Person(employee_call_center_ext, "Сотрудник партнерского кол-центра")
+
+System(call_center, "Система кол-центра", "Используется платформа подрядчика")
+System_Ext(call_center_ext, "Партнерский кол-центр", "")
+System(standart, "Банковская система 'Стандарт'")
+System_Ext(bki, "Бюро кредитных историй")
+
+Rel(client, call_center, "Звонит в кол-центр")
+Rel(client, call_center_ext, "Звонит в партнерский кол-центр")
+Rel(employee_call_center, call_center, "Анализирует актуальные депозитные ставки для клиента")
+Rel(employee_call_center_ext, call_center_ext, "Анализирует актуальные депозитные ставки для клиента")
+
+Rel(call_center, standart, "Получение актуальных депозитных ставок")
+Rel(call_center_ext, standart, "Получение актуальныз депозитных ставок")
+Rel(standart, bki, "Запращивает кредитную историю для вычисления депозитных ставок")
+@enduml
