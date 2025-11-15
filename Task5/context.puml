@@ -1,0 +1,28 @@
+@startuml
+
+title Диаграмма контекста банка "Стандрат"
+!include ../C4/C4_Context.puml
+
+Person(front_office, "Менеджер фронт-офиса", "Фронт-офис")
+Person(client, "Клиент банка")
+Person(call_center, "Менеджер колл-центра", "Колл-центр")
+
+Person(back_office_deposit, "Менеджер по оформлению депозит", "Бэк-офис")
+Person(back_office_credit, "Менеджер по оформлению кредита", "Бэк-офис")
+
+System(abc, "Банковская система 'Стандрат'", "")
+System_Ext(bki, "Банк кредитных историй", "Внешняя система")
+System_Ext(sms_gateway, "СМС-шлюз", "Внешняя система")
+
+Rel_D(client, abc, "Подает заявку на депозит", "")
+Rel_D(call_center, abc, "Обрабатывает новые заявки по депозиту", "")
+Rel_D(front_office, abc, "Идентификации клиента, открывает депозит", "")
+Rel_U(back_office_deposit, abc, "Формирует прдложение по депозиту", "")
+Rel_R(back_office_credit, abc, "Вычисляет ставку по депозиту", "")
+Rel_R(abc, bki, "Получение кредитных историй", "")
+Rel_L(abc, sms_gateway, "Уведомления по депозите", "")
+Rel_D(sms_gateway, client, "Отправка СМС", "")
+Rel_L(call_center, client, "Звонит клиенту", "Звонит клиенту")
+
+
+@enduml

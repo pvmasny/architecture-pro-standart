@@ -1,0 +1,67 @@
+@startuml
+
+title Диаграмма контейнеров банка "Стандрат"
+!include ../C4/C4_Container.puml
+
+AddContainerTag("mvp", $bgColor="#4CAF50", $borderColor="Black", $fontColor="Black")
+
+
+Person(manager_call_center, "Менеджер кол-центра")
+Person(client, "Клиент банка")
+Person(manager_back_office, "Менеджер бэк-офиса")
+
+System_Boundary(bank_system, "Новые сервисы системы 'Стандарт'"){
+    Container(internet_bank, "Интернет-банк", "SPA React.js", "Новый интернет-банк", $tags="mvp")
+    Container(api_gateway, "API Gateway", ".NET, Ocelot", $tags="mvp")
+    Container(deposit_service, "Сервис по обработке депозитов", ".NET", "Обработка депозитов", $tags="mvp")
+    ContainerDb(deposit_db, "БД депозиты", "PostgresSQL", $tags="mvp")
+    Container(rate_service, "Сервис управления ставками", "Java Spring Boot", "", $tags="mvp")
+    ContainerDb(rate_db, "БД ставки", "PostgresSQL", $tags="mvp")
+    Container(adapter, "Adapter Service", "Java Spring Boot", $tags="mvp")
+    ContainerQueue(kafka, "Брокер сообщений", "Kafka", $tags="mvp")
+}
+
+System_Boundary(call_system, "Система кол-центра"){
+    System_Ext(call_center, "Система кол-центра", "У системы веб-интерфейс на React.js, бэкенд на Java Spring Boot и базы PostgreSQL. Архитектура микросервисная. Система развёрнута в инфраструктуре банка и полностью поддерживается подрядчиком.")
+    Container(bank_req_flow, "Сервис обработки новых заявок", "Java Spring Boot", $tags="mvp")
+}
+
+Rel_D(call_center, bank_req_flow, "", "REST API")
+BiRel_D(bank_req_flow, kafka, "", "pub/sub")
+
+System_Boundary(old_system, "Старые системы банка", ""){
+    Container(old_internet_bank, "Интернет-банк", "ASP.NET MVC 4.5 на основе .NET Framework 4.5, СУБД MS SQL", "Монолит")
+    Container(abc, "АБС", "десктопный клиент на Delphi и СУБД на Oracle", "Автоматизированная банковская система")
+    Container(credit_pipeline, "Кредитный конвейер", "Camunda BPM + Oracle", "Система обработки кредитных заявок")
+    Container(credit_scoring, "Система кредитного скоринга", "Python Flask + PostgreSQL", "Rest API на Flask")
+    
+}
+
+System_Ext(sms_gateway, "СМС-шлюз телеком-оператора", "Отправка СМС-уведомлений")
+System_Ext(bki, "Бюро кредитных историй", "Внешняя система предоставления кредитных данных")
+
+Rel_D(manager_call_center, call_center, "Обрабатывает заявки от клиентов")
+Rel_D(client, internet_bank, "Формирует заявку на депозит")
+Rel(manager_back_office, abc, "Получает информацию по ставкам")
+Rel_R(manager_call_center, client, "Звонит клиента")
+
+Rel_L(rate_service, rate_db, "", "")
+Rel_R(deposit_service, deposit_db, "", "")
+
+Rel_D(internet_bank, api_gateway, "Формироване заявок на депозит", "Rest API")
+Rel_D(api_gateway, deposit_service, "Формироване заявок на депозит", "Rest API")
+Rel_D(api_gateway, rate_service, "", "Rest API")
+BiRel_D(deposit_service, kafka, "", "pub/sub")
+BiRel_D(rate_service, kafka, "", "pub/sub")
+BiRel_D(adapter, kafka, "", "pub/sub")
+BiRel_D(adapter, abc, "", "REST API")
+Rel_D(abc, credit_pipeline, "Интеграция с АБС", "Rest API")
+Rel_D(abc, credit_scoring, "Интеграция с АБС", "Rest API")
+Rel_D(credit_scoring, bki, "Интеграция с БКИ", "Rest API")
+
+
+
+Rel(abc, sms_gateway, "Отправка уведомлений по депозиту", "Rest API")
+Rel(sms_gateway, client, "Отправка СМС", "")
+
+@enduml
